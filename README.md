@@ -1,1 +1,3 @@
-# Testnet_ETH_BNB_Balance_Check
+# CheckTestnetBalance
+
+This code helps people check TESTNET balance on ETH &amp; BSC network.
