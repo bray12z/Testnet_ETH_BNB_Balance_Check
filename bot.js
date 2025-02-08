@@ -22,8 +22,8 @@ bot.onText(/\/start/, (msg) => {
     "👋 Xin chào! Gửi danh sách địa chỉ ví testnet (ETH & BNB) để kiểm tra số dư.\n\n" +
       "📌 Mỗi địa chỉ ví cần cách nhau bằng khoảng trắng hoặc xuống dòng.\n" +
       "Ví dụ:\n" +
-      "`0x7f172cbba9bcba784d7b2aef7bfe80c1fda0fa8b`\n" +
-      "`0x7df97f15ab94e72084ce7ba6ce22c5ed9223e35b`\n\n" +
+      "`0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`\n" +
+      "`0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`\n\n" +
       "🚀 Bot sẽ kiểm tra và gửi kết quả lại!"
   );
 });
