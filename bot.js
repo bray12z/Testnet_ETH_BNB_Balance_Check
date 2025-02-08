@@ -1,21 +1,20 @@
-require("dotenv").config(); // Đọc biến môi trường từ file .env
+require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const axios = require("axios");
 
-// Lấy Token & API Key từ .env
+// Lấy Token & API Key từ biến môi trường
 const TOKEN = process.env.BOT_TOKEN;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 
 const bot = new TelegramBot(TOKEN, { polling: true });
+
 console.log("🚀 Bot Telegram đã khởi động thành công!");
 
-// Xử lý lỗi Polling
-bot.on("polling_error", (error) => {
-  console.error(`❌ Lỗi Polling: ${error.message}`);
-});
+// Giới hạn tốc độ gọi API: 5 requests/second
+const RATE_LIMIT = 5;
+const REQUEST_DELAY = 1000 / RATE_LIMIT; // 1000ms / 5 = 200ms mỗi request
 
-// Khi người dùng gửi /start
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
@@ -28,7 +27,6 @@ bot.onText(/\/start/, (msg) => {
   );
 });
 
-// Xử lý tin nhắn người dùng
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text.trim();
@@ -51,30 +49,44 @@ bot.on("message", async (msg) => {
 
   bot.sendMessage(
     chatId,
-    `🔍 Đang kiểm tra số dư của ${walletAddresses.length} địa chỉ ví...`
+    `🔍 Đang kiểm tra số dư của ${walletAddresses.length} địa chỉ ví...\n⏳ Vui lòng đợi...`
   );
 
   try {
     let results = [];
 
-    for (const walletAddress of walletAddresses) {
+    for (let i = 0; i < walletAddresses.length; i++) {
+      const walletAddress = walletAddresses[i];
+
+      // Gọi API để lấy số dư ETH trên Sepolia Testnet
+      const ethPromise = axios.get(
+        `https://api-sepolia.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`
+      );
+
+      // Gọi API để lấy số dư BNB trên BSC Testnet
+      const bnbPromise = axios.get(
+        `https://api-testnet.bscscan.com/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${BSCSCAN_API_KEY}`
+      );
+
+      // Chờ 2 API cùng trả về dữ liệu
       const [ethBalanceRes, bnbBalanceRes] = await Promise.all([
-        axios.get(
-          `https://api-sepolia.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`
-        ),
-        axios.get(
-          `https://api-testnet.bscscan.com/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${BSCSCAN_API_KEY}`
-        ),
+        ethPromise,
+        bnbPromise,
       ]);
 
-      const ethBalance = (ethBalanceRes.data.result || 0) / 10 ** 18;
-      const bnbBalance = (bnbBalanceRes.data.result || 0) / 10 ** 18;
+      const ethBalance = ethBalanceRes.data.result / 10 ** 18;
+      const bnbBalance = bnbBalanceRes.data.result / 10 ** 18;
 
       results.push(
         `📌 **Ví**: \`${walletAddress}\`\n` +
           `💰 **ETH (Sepolia Testnet)**: ${ethBalance.toFixed(6)} ETH\n` +
           `💰 **BNB (BSC Testnet)**: ${bnbBalance.toFixed(6)} BNB\n`
       );
+
+      // Nếu còn ví để kiểm tra, chờ một chút trước khi gọi tiếp API
+      if (i < walletAddresses.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY));
+      }
     }
 
     // Gửi kết quả về Telegram (chia thành nhiều tin nhắn nếu cần)
