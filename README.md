@@ -1,7 +1,7 @@
 Here are instruction:
 name: Check_testnet_Balance_Nodejs
 ver: v1.0
-author: Duong Pham
+author: bray12z
 
 ---
 
